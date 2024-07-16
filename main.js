@@ -35,8 +35,7 @@ var Zeact = {
     createElement: createElement,
 };
 var element = Zeact.createElement("div", { id: "foo" }, Zeact.createElement("li", null, Zeact.createElement("a", null, "bar")), Zeact.createElement("div", { style: "background-color:red" }, "Hello"));
-function render(element, container) {
-    var _a;
+function createDom(element) {
     var dom = element.type == "TEXT_ELEMENT"
         ? document.createTextNode("")
         : document.createElement(element.type);
@@ -49,9 +48,66 @@ function render(element, container) {
             // stop ts bitching
             dom[name] = element.props[name];
         });
-    //recursive call
-    (_a = element.props) === null || _a === void 0 ? void 0 : _a.children.forEach(function (child) { return render(child, dom); });
-    container.appendChild(dom);
+    return dom;
+}
+var nextUnitOfWork;
+function render(element, container) {
+    nextUnitOfWork = {
+        dom: container,
+        props: {
+            children: [element]
+        }
+    };
+}
+function workLoop(deadline) {
+    var shouldContinue = true;
+    while (nextUnitOfWork && shouldContinue) {
+        nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
+        shouldContinue = deadline.timeRemaining() > 1;
+    }
+    requestIdleCallback(workLoop);
+}
+requestIdleCallback(workLoop);
+//in the first call the argument is Zeact element; then there are fibers
+function performUnitOfWork(fiber) {
+    var _a, _b;
+    if (!fiber.dom) {
+        fiber.dom = createDom(fiber);
+    }
+    if (fiber.parent && fiber.dom) {
+        (_a = fiber.parent.dom) === null || _a === void 0 ? void 0 : _a.appendChild(fiber.dom);
+    }
+    var elements = (_b = fiber.props) === null || _b === void 0 ? void 0 : _b.children;
+    var index = 0;
+    var prevSibling = null;
+    while (index < elements.length) {
+        var element_1 = elements[index];
+        var newFiber = {
+            type: element_1.type,
+            props: element_1.props,
+            parent: fiber,
+            dom: null,
+        };
+        if (index === 0) {
+            fiber.child = newFiber;
+        }
+        else {
+            prevSibling.sibling = newFiber;
+        }
+        prevSibling = newFiber;
+        index++;
+    }
+    //goes all the way down and then visit sibilings and then uncles via parent; and goes all the way up
+    if (fiber.child) {
+        return fiber.child;
+    }
+    var nextFiber = fiber;
+    while (nextFiber) {
+        if (nextFiber.sibling) {
+            return nextFiber.sibling;
+        }
+        nextFiber = nextFiber.parent;
+    }
 }
 var rootContainer = document.getElementById("root");
 render(element, rootContainer);
