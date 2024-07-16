@@ -43,7 +43,7 @@ const element = Zeact.createElement(
   Zeact.createElement("div", { style: "background-color:red" }, "Hello")
 );
 
-function createDom(element:ZeactElement){
+function createDom(element: ZeactElement) {
   const dom =
     element.type == "TEXT_ELEMENT"
       ? document.createTextNode("")
@@ -59,30 +59,42 @@ function createDom(element:ZeactElement){
         (dom as any)[name] = element.props![name];
       });
 
-      return dom
+  return dom;
 }
-let nextUnitOfWork:Fiber;
+let nextUnitOfWork: Fiber;
+let wipRoot: Fiber | null; //better name for this is, fiberTreeRoot. we only store it refrence to commit whole dom all at once
 
 function render(element: ZeactElement, container: HTMLElement | Text) {
-
-  nextUnitOfWork = {
-    dom:container,
-    props:{
-      children: [element]
-    }
-  }
+  wipRoot = {
+    dom: container,
+    props: {
+      children: [element],
+    },
+  };
+  nextUnitOfWork = wipRoot;
 }
 
+interface Fiber extends ZeactElement {
+  dom?: HTMLElement | Text | null;
+  parent?: Fiber | null;
+  child?: Fiber | null;
+  sibling?: Fiber | null;
+}
 
-
-interface Fiber extends ZeactElement{
-    dom?: HTMLElement | Text | null;
-    parent?: Fiber | null;
-    child?: Fiber | null;
-    sibling?: Fiber | null;
+//recursivly calls the function whom paints the dom
+function commitRoot() {
+  commitWork(wipRoot?.child!); //because wipRoot is pointing to the container, which already is exist in HTML file 
+  wipRoot = null;
+}
+function commitWork(fiber: Fiber) {
+  if (!fiber) {
+    return;
   }
-
-
+  const domParent = fiber.parent!.dom;
+  domParent?.appendChild(fiber.dom!);
+  commitWork(fiber.child!);
+  commitWork(fiber.sibling!);
+}
 
 function workLoop(deadline: IdleDeadline) {
   let shouldContinue = true;
@@ -90,20 +102,18 @@ function workLoop(deadline: IdleDeadline) {
     nextUnitOfWork = performUnitOfWork(nextUnitOfWork)!;
     shouldContinue = deadline.timeRemaining() > 1;
   }
+  if (!nextUnitOfWork && wipRoot) {
+    commitRoot();
+  }
   requestIdleCallback(workLoop);
 }
 
-requestIdleCallback(workLoop)
-
+requestIdleCallback(workLoop);
 
 //in the first call the argument is Zeact element; then there are fibers
-function performUnitOfWork(fiber:Fiber) {
+function performUnitOfWork(fiber: Fiber) {
   if (!fiber.dom) {
     fiber.dom = createDom(fiber);
-  }
-  //when reaches to each fiber,does the dom mutation
-  if (fiber.parent && fiber.dom) {
-    fiber.parent.dom?.appendChild(fiber.dom);
   }
   const elements = fiber.props?.children;
   let index = 0;
@@ -136,12 +146,6 @@ function performUnitOfWork(fiber:Fiber) {
     nextFiber = nextFiber.parent!;
   }
 }
-
-
-
-
-
-
 
 const rootContainer = document.getElementById("root") as HTMLElement;
 render(element, rootContainer);

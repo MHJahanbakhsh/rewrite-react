@@ -51,13 +51,31 @@ function createDom(element) {
     return dom;
 }
 var nextUnitOfWork;
+var wipRoot;
+var currentRoot;
 function render(element, container) {
-    nextUnitOfWork = {
+    wipRoot = {
         dom: container,
         props: {
-            children: [element]
-        }
+            children: [element],
+        },
+        alternate: currentRoot,
     };
+    nextUnitOfWork = wipRoot;
+}
+function commitRoot() {
+    commitWork(wipRoot === null || wipRoot === void 0 ? void 0 : wipRoot.child);
+    currentRoot = wipRoot;
+    wipRoot = null;
+}
+function commitWork(fiber) {
+    if (!fiber) {
+        return;
+    }
+    var domParent = fiber.parent.dom;
+    domParent === null || domParent === void 0 ? void 0 : domParent.appendChild(fiber.dom);
+    commitWork(fiber.child);
+    commitWork(fiber.sibling);
 }
 function workLoop(deadline) {
     var shouldContinue = true;
@@ -65,19 +83,19 @@ function workLoop(deadline) {
         nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
         shouldContinue = deadline.timeRemaining() > 1;
     }
+    if (!nextUnitOfWork && wipRoot) {
+        commitRoot();
+    }
     requestIdleCallback(workLoop);
 }
 requestIdleCallback(workLoop);
 //in the first call the argument is Zeact element; then there are fibers
 function performUnitOfWork(fiber) {
-    var _a, _b;
+    var _a;
     if (!fiber.dom) {
         fiber.dom = createDom(fiber);
     }
-    if (fiber.parent && fiber.dom) {
-        (_a = fiber.parent.dom) === null || _a === void 0 ? void 0 : _a.appendChild(fiber.dom);
-    }
-    var elements = (_b = fiber.props) === null || _b === void 0 ? void 0 : _b.children;
+    var elements = (_a = fiber.props) === null || _a === void 0 ? void 0 : _a.children;
     var index = 0;
     var prevSibling = null;
     while (index < elements.length) {
