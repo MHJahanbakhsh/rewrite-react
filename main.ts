@@ -1,7 +1,7 @@
 type Props = Record<string, any>;
 
 interface ZeactElement {
-  type?: keyof HTMLElementTagNameMap | "TEXT_ELEMENT";
+  type?: keyof HTMLElementTagNameMap | "TEXT_ELEMENT" | Function;
   props: Props;
 }
 
@@ -41,7 +41,8 @@ function createDom(element: ZeactElement) {
   const dom =
     element.type == "TEXT_ELEMENT"
       ? document.createTextNode("")
-      : document.createElement(element.type!);
+      : //since we changed type to support function, this will nag about. but we only call this createDom function when element.type is not a function
+        document.createElement(element.type as any);
 
   //setting attributes
   const isProperty = (key: string) => key !== "children";
@@ -92,16 +93,28 @@ function commitWork(fiber: Fiber) {
   if (!fiber) {
     return;
   }
-  const domParent = fiber.parent!.dom;
+  let domParentFiber = fiber.parent;
+  while (!domParentFiber?.dom) {
+    domParentFiber = domParentFiber?.parent;
+  }
+  const domParent = domParentFiber.dom;
   if (fiber.effectTag === "PLACEMENT" && fiber.dom != null) {
     domParent?.appendChild(fiber.dom);
+    
   } else if (fiber.effectTag === "UPDATE" && fiber.dom != null) {
     updateDom(fiber.dom as HTMLElement, fiber.alternate?.props!, fiber.props);
   } else if (fiber.effectTag === "DELETION") {
-    domParent?.removeChild(fiber.dom!);
+    commitDeletion(fiber, domParent);
   }
   commitWork(fiber.child!);
   commitWork(fiber.sibling!);
+}
+function commitDeletion(fiber: Fiber, domParent: HTMLElement | Text) {
+  if (fiber.dom) {
+    domParent.removeChild(fiber.dom);
+  } else {
+    commitDeletion(fiber.child!, domParent);
+  }
 }
 const isEvent = (key: string) => key.startsWith("on");
 const isProperty = (key: string) => key !== "children";
@@ -158,12 +171,13 @@ requestIdleCallback(workLoop);
 
 //in the first call the argument is Zeact element; then there are fibers
 function performUnitOfWork(fiber: Fiber) {
-  if (!fiber.dom) {
-    fiber.dom = createDom(fiber);
+  const isFunctionComponent = fiber.type instanceof Function;
+  if (isFunctionComponent) {
+    updateFunctionComponent(fiber as any);
+  } else {
+    updateHostComponent(fiber);
   }
-  const elements = fiber.props?.children;
-  //essentially builds-up the fiber tree, before commit phase
-  reconcileChildren(fiber, elements);
+
   //goes all the way down and then visit sibilings and then uncles via parent; and goes all the way up
   if (fiber.child) {
     return fiber.child;
@@ -175,6 +189,22 @@ function performUnitOfWork(fiber: Fiber) {
     }
     nextFiber = nextFiber.parent!;
   }
+}
+
+function updateFunctionComponent(
+  fiber: Omit<Fiber, "type"> & { type: Function }
+) {
+  const children = [fiber.type(fiber.props)];
+  reconcileChildren(fiber, children);
+}
+
+function updateHostComponent(fiber: Fiber) {
+  if (!fiber.dom) {
+    fiber.dom = createDom(fiber);
+  }
+  const elements = fiber.props?.children;
+  //essentially builds-up the fiber tree, before commit phase
+  reconcileChildren(fiber, elements);
 }
 
 function reconcileChildren(wipFiber: Fiber, elements: ZeactElement[]) {
