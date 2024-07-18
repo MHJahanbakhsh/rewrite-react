@@ -61,6 +61,10 @@ let wipRoot: Fiber | null; //better name for this is, fiberTreeRoot. we only sto
 let currentRoot: Fiber | null;
 let deletions: Fiber[];
 
+//for useState
+let wipFiber: Fiber;
+let hookIndex: number;
+
 function render(element: ZeactElement, container: HTMLElement | Text) {
   wipRoot = {
     dom: container,
@@ -80,6 +84,12 @@ interface Fiber extends ZeactElement {
   sibling?: Fiber | null;
   alternate?: Fiber | null;
   effectTag?: "PLACEMENT" | "UPDATE" | "DELETION";
+  hooks?: Hook<any>[];
+}
+
+interface Hook<State> {
+  state: State;
+  queue: ((state: State) => State)[];
 }
 
 //recursivly calls the function whom paints the dom
@@ -100,7 +110,6 @@ function commitWork(fiber: Fiber) {
   const domParent = domParentFiber.dom;
   if (fiber.effectTag === "PLACEMENT" && fiber.dom != null) {
     domParent?.appendChild(fiber.dom);
-    
   } else if (fiber.effectTag === "UPDATE" && fiber.dom != null) {
     updateDom(fiber.dom as HTMLElement, fiber.alternate?.props!, fiber.props);
   } else if (fiber.effectTag === "DELETION") {
@@ -194,8 +203,36 @@ function performUnitOfWork(fiber: Fiber) {
 function updateFunctionComponent(
   fiber: Omit<Fiber, "type"> & { type: Function }
 ) {
+  //-----for state hook-----
+  wipFiber = fiber;
+  hookIndex = 0;
+  wipFiber.hooks = [];
+  //---------------
+
   const children = [fiber.type(fiber.props)];
   reconcileChildren(fiber, children);
+}
+function useState<State>(
+  initial: State
+): [State, (action: (state: State) => State) => void] {
+  const oldHook = wipFiber?.alternate?.hooks?.[hookIndex];
+  const hook: Hook<State> = {
+    state: oldHook ? oldHook.state : initial,
+    queue: [],
+  };
+  wipFiber?.hooks?.push(hook);
+  hookIndex++;
+  const setState = (action: (state: State) => State): void => {
+    hook.queue.push(action);
+    wipRoot = {
+      dom: currentRoot?.dom,
+      props: currentRoot?.props!,
+      alternate: currentRoot,
+    };
+    nextUnitOfWork = wipRoot;
+    deletions = [];
+  };
+  return [hook.state, setState];
 }
 
 function updateHostComponent(fiber: Fiber) {
