@@ -320,3 +320,21 @@ const element = Zeact.createElement(
 );
 const rootContainer = document.getElementById("root") as HTMLElement;
 render(element, rootContainer);
+
+/*
+State Update in a Component: When a component updates (e.g., through a state change or props update),
+ React triggers a re-render. The reconciliation process starts from the root of the fiber tree 
+ and works its way down to the affected components.
+*/
+
+//i guess react is also smart enough to skip the fiberNodes whom states are not changed?
+//no without compiler the whole diffing happens at runtime.
+//you can only optimize the process, you can't not do it!
+//the concept of "flags" in actual sourceCode is the same as what we call effectTag?
+
+//missed parts:
+//1- probably reconciliation after changing state should be different than normal(skip components that doesn't need to be checked)
+//2- react avoids recursion as as it can
+//2- react avoids recursion as as it can
+//3- freezing props
+//By avoid unnecceary re-renders we are helping the react reconciliation algorithm to skip unwanted fibers right away
