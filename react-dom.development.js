@@ -4410,6 +4410,7 @@
         key._reactInternals = value;
     }
 
+    //---------------FLAAAGS-----------------
     // Don't change these two values. They're used by React Dev Tools.
     var NoFlags =
         /*                      */
@@ -5269,6 +5270,7 @@
 
     // If those values are changed that package should be rebuilt and redeployed.
 
+    //Added since cuncurrent mode to priortize work
     var TotalLanes = 31;
     var NoLanes =
         /*                        */
@@ -11276,13 +11278,19 @@
     }
 
     function removeChild(parentInstance, child) {
-        parentInstance.removeChild(child);
+        console.log('Removing child ....', {
+            child
+        }) parentInstance.removeChild(child);
     }
 
     function removeChildFromContainer(container, child) {
         if (container.nodeType === COMMENT_NODE) {
             container.parentNode.removeChild(child);
         } else {
+            console.log('Removing child from the container...', {
+                child,
+                container
+            })
             container.removeChild(child);
         }
     }
@@ -13521,7 +13529,7 @@
                 }
             } // Insert
 
-
+            //creates a FiberNode from React element POJO
             var created = createFiberFromElement(element, returnFiber.mode, lanes);
             created.ref = coerceRef(returnFiber, current, element);
             created.return = returnFiber;
@@ -25465,6 +25473,8 @@
         ReactCurrentOwner$2 = ReactSharedInternals.ReactCurrentOwner,
         ReactCurrentBatchConfig$3 = ReactSharedInternals.ReactCurrentBatchConfig,
         ReactCurrentActQueue$1 = ReactSharedInternals.ReactCurrentActQueue;
+
+    //-------various contexts---------
     var NoContext =
         /*             */
         0;
@@ -26461,7 +26471,7 @@
     }
 
     function handleError(root, thrownValue) {
-        do {
+        do { // infinite while loop
             var erroredWork = workInProgress;
 
             try {
@@ -26664,6 +26674,7 @@
     /** @noinline */
 
 
+    //marked
     function workLoopSync() {
         // Already timed out, so perform work without checking if we need to yield.
         while (workInProgress !== null) {
@@ -28354,7 +28365,7 @@
 
     function createWorkInProgress(current, pendingProps) {
         var workInProgress = current.alternate;
-
+        //TODO CHECK HERE ONCE MORE
         if (workInProgress === null) {
             // We use a double buffering pooling technique because we know that we'll
             // only ever need at most two versions of a tree. We pool the "other" unused
@@ -28441,7 +28452,9 @@
                     break;
             }
         }
-
+        console.log('from createWorkInProgress function', {
+            workInProgress
+        })
         return workInProgress;
     } // Used to reuse a Fiber for a second pass.
 
@@ -48773,6 +48786,8 @@
         // Unsafe lifecycles should not be invoked for components using the new APIs.
 
         if (!hasNewLifecycles && (typeof instance.UNSAFE_componentWillReceiveProps === 'function' || typeof instance.componentWillReceiveProps === 'function')) {
+
+            //checking equality
             if (oldProps !== newProps || oldContext !== nextContext) {
                 callComponentWillReceiveProps(workInProgress, instance, newProps, nextContext);
             }
@@ -51895,7 +51910,7 @@
     }
 
     function beginWork(current, workInProgress, renderLanes) {
-        {
+        console.log('Beginning Work....') {
             if (workInProgress._debugNeedsRemount && current !== null) {
                 // This will restart the begin phase with a new fiber.
                 return remountFiber(current, workInProgress, createFiberFromTypeAndProps(workInProgress.type, workInProgress.key, workInProgress.pendingProps, workInProgress._debugOwner || null, workInProgress.mode, workInProgress.lanes));
@@ -51921,6 +51936,7 @@
                     (workInProgress.flags & DidCapture) === NoFlags) {
                     // No pending updates or context. Bail out now.
                     didReceiveUpdate = false;
+                    //stop comparing fiberNode and move forward(being efficent)
                     return attemptEarlyBailoutIfNoScheduledUpdate(current, workInProgress, renderLanes);
                 }
 
@@ -56862,7 +56878,7 @@
         var current = unitOfWork.alternate;
         setCurrentFiber(unitOfWork);
         var next;
-
+        console.log('Performing Work...')
         if ((unitOfWork.mode & ProfileMode) !== NoMode) {
             startProfilerTimer(unitOfWork);
             next = beginWork$1(current, unitOfWork, subtreeRenderLanes);
@@ -56888,7 +56904,7 @@
         // Attempt to complete the current unit of work, then move to the next
         // sibling. If there are no more siblings, return to the parent fiber.
         var completedWork = unitOfWork;
-
+        console.log(completing Work)
         do {
             // The current, flushed, state of this fiber is the alternate. Ideally
             // nothing should rely on this, but relying on it here means that we don't
