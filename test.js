@@ -2,7 +2,52 @@ const rootDom = document.getElementById('root')
 const RootContainer = ReactDOM.createRoot(rootDom)
 RootContainer.render(React.createElement(App))
 
+function InputComponent({
+    inputValue,
+    handleChange
+}) {
+    return React.createElement(
+        'div',
+        null,
+        React.createElement('label', null, 'Controlled Input:'),
+        React.createElement('input', {
+            type: 'text',
+            value: inputValue,
+            onChange: handleChange
+        })
+    );
+}
 
+
+function IndependentInputComponent() {
+    const [localInputValue, setLocalInputValue] = React.useState('');
+    const [dummyToggle, setDummyToggle] = React.useState('off')
+    React.useEffect(() => {
+        dummyToggle === 'off' ? setDummyToggle('on') : setDummyToggle('off')
+    }, [localInputValue])
+
+    const handleLocalChange = (event) => {
+        setLocalInputValue(event.target.value);
+    };
+
+    return React.createElement('input', {
+        type: 'text',
+        value: localInputValue,
+        onChange: handleLocalChange
+    })
+}
+
+
+function ToggleButton({
+    toggleElement
+}) {
+    return React.createElement(
+        'button', {
+            onClick: toggleElement
+        },
+        'Toggle h1/p'
+    );
+}
 
 
 function App() {
@@ -18,22 +63,21 @@ function App() {
     };
 
     return React.createElement(
-        'div',
+        'section',
         null,
-        React.createElement('label', null, 'Controlled Input:'),
-        React.createElement('input', {
-            type: 'text',
-            value: inputValue,
-            onChange: handleChange
+        React.createElement(InputComponent, {
+            inputValue,
+            handleChange
         }),
         isH1 ?
-        React.createElement('h1', null, `Current Value: ${inputValue +'foobar'}`) :
+        React.createElement('h1', null, `Current Value: ${inputValue + ''}`) :
         React.createElement('p', null, `Current Value: ${inputValue}`),
-        React.createElement(
-            'button', {
-                onClick: toggleElement
-            },
-            'Toggle h1/p'
-        )
+        React.createElement(ToggleButton, {
+            toggleElement
+        }),
+
+        React.createElement('hr'),
+        React.createElement(IndependentInputComponent)
+
     );
 }

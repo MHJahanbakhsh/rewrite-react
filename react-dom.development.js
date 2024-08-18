@@ -28358,9 +28358,10 @@
         return IndeterminateComponent;
     } // This is used to create an alternate fiber to do work on.
 
+    //createWorkInProgress
     function createWorkInProgress(current, pendingProps) {
         var workInProgress = current.alternate;
-
+        console.log('workInProgress:', workInProgress)
         if (workInProgress === null) {
             // We use a double buffering pooling technique because we know that we'll
             // only ever need at most two versions of a tree. We pool the "other" unused
