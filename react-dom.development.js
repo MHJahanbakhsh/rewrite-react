@@ -5436,6 +5436,7 @@
     var nextTransitionLane = TransitionLane1;
     var nextRetryLane = RetryLane1;
 
+    //lanes
     function getHighestPriorityLanes(lanes) {
         switch (getHighestPriorityLane(lanes)) {
             case SyncLane:
@@ -22767,6 +22768,7 @@
                         } else if ( // The time it took to render last row is greater than the remaining
                             // time we have to render. So rendering one more row would likely
                             // exceed it.
+                            //bails out
                             now() * 2 - renderState.renderingStartTime > getRenderTargetTime() && renderLanes !== OffscreenLane) {
                             // We have now passed our CPU deadline and we'll just give up further
                             // attempts to render the main content and only render fallbacks.
