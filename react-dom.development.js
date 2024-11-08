@@ -11231,7 +11231,7 @@
     }
 
     function commitTextUpdate(textInstance, oldText, newText) {
-        console.log('commitTextUpdate', newText)
+        // console.log('commitTextUpdate', newText)
         textInstance.nodeValue = newText;
     }
 
@@ -11240,7 +11240,7 @@
     }
 
     function appendChildToContainer(container, child) {
-        console.log('appendChildToContainer', child)
+        // console.log('appendChildToContainer', child)
         var parentNode;
 
         if (container.nodeType === COMMENT_NODE) {
@@ -21817,6 +21817,8 @@
                     // may not be work scheduled on `current`, so we check for this flag.
                     (workInProgress.flags & DidCapture) === NoFlags) {
                     // No pending updates or context. Bail out now.
+                    console.log('beginWork hasScheduledUpdateOrContext',workInProgress.key)
+
                     didReceiveUpdate = false;
                     return attemptEarlyBailoutIfNoScheduledUpdate(current, workInProgress, renderLanes);
                 }
@@ -26754,7 +26756,7 @@
     }
 
     function performUnitOfWork(unitOfWork) {
-        console.log('performUnitOfWork for unit:  ', unitOfWork)
+        console.log('performUnitOfWork for unit:  ',unitOfWork.key, unitOfWork.lanes,unitOfWork.childLanes)
         // The current, flushed, state of this fiber is the alternate. Ideally
         // nothing should rely on this, but relying on it here means that we don't
         // need an additional field on the work in progress.
@@ -27638,7 +27640,10 @@
             var originalWorkInProgressCopy = assignFiberPropertiesInDEV(dummyFiber, unitOfWork);
 
             try {
-                return beginWork(current, unitOfWork, lanes);
+                const resultOfBeginWork = beginWork(current, unitOfWork, lanes)
+                // console.log('inputOfBeginWork',unitOfWork)
+                // console.log('resultOfBeginWork',resultOfBeginWork)
+                return resultOfBeginWork;
             } catch (originalError) {
                 if (didSuspendOrErrorWhileHydratingDEV() || originalError !== null && typeof originalError === 'object' && typeof originalError.then === 'function') {
                     // Don't replay promises.
@@ -28361,7 +28366,8 @@
     //createWorkInProgress
     function createWorkInProgress(current, pendingProps) {
         var workInProgress = current.alternate;
-        console.log('workInProgress:', workInProgress)
+        // console.log('createWorkInProgress pendingProps',pendingProps)
+        // console.log('createWorkInProgress:',workInProgress?.key, workInProgress?.flags)
         if (workInProgress === null) {
             // We use a double buffering pooling technique because we know that we'll
             // only ever need at most two versions of a tree. We pool the "other" unused
